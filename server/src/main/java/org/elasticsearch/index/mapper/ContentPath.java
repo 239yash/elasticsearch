@@ -8,8 +8,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.util.Stack;
-
 public final class ContentPath {
 
     private static final char DELIMITER = '.';
@@ -18,36 +16,34 @@ public final class ContentPath {
 
     private int index = 0;
 
-    private Stack<Integer> endIndex;
+    private String[] path = new String[10];
 
     private boolean withinLeafObject = false;
 
     public ContentPath() {
         this.sb = new StringBuilder();
-        this.endIndex = new Stack<>();
     }
 
     String[] getPath() {
         // used for testing
-        return sb.toString().split("[.]");
+        return path;
     }
 
     public void add(String name) {
-        sb.append(name).append(DELIMITER);
-        endIndex.push(sb.length() - 1);
-        ++index;
+        path[index++] = name;
+        if (index == path.length) { // expand if needed
+            expand();
+        }
+    }
+
+    private void expand() {
+        String[] newPath = new String[path.length + 10];
+        System.arraycopy(path, 0, newPath, 0, path.length);
+        path = newPath;
     }
 
     public void remove() {
-        endIndex.pop();
-        if (endIndex.isEmpty()) {
-            sb.setLength(0);
-            --index;
-            return;
-        }
-        int limit = endIndex.lastElement();
-        sb.setLength(limit + 1);
-        --index;
+        path[--index] = null;
     }
 
     public void setWithinLeafObject(boolean withinLeafObject) {
@@ -59,6 +55,10 @@ public final class ContentPath {
     }
 
     public String pathAsText(String name) {
+        sb.setLength(0);
+        for (int i = 0; i < index; i++) {
+            sb.append(path[i]).append(DELIMITER);
+        }
         sb.append(name);
         return sb.toString();
     }
